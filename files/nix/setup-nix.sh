@@ -22,7 +22,7 @@ set -e
 # the full explanation). The pin here and in nixwrap must
 # match. A .so already present is never overwritten.
 XATTR_SHIM=/home/hatch/bin/xattr-retry.so
-XATTR_SHIM_URL=https://github.com/dahjah/muse-vm-nix-and-ssh-enablement/releases/download/shim-v1/xattr-retry.so
+XATTR_SHIM_URL=https://github.com/dahjah/muse-vm-hacks/releases/download/shim-v1/xattr-retry.so
 XATTR_SHIM_SHA256=19038c96d55f08eda8388b41a68be4c9bcdc3554fa7fc6e1fe5985c5189852e2
 if [ ! -f "$XATTR_SHIM" ]; then
   shim_tmp="$XATTR_SHIM.tmp.$$"

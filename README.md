@@ -1,6 +1,6 @@
 # Muse VM: Nix + Tailscale SSH enablement
 
-Give your Muse VM two things it doesn't ship with:
+Give your Muse VM three things it doesn't ship with:
 
 1. **The Nix package manager**, installed so that it survives VM
    reboots and replacements, allowing full access to nixpkgs
@@ -12,6 +12,12 @@ Give your Muse VM two things it doesn't ship with:
    to the VM from other devices on the same tailnet. An optional
    ACL policy (recommended) can additionally restrict the VM to
    receive-only operation.
+3. **An OpenAI-compatible API endpoint** (optional): the API
+   Bridge module exposes this VM's Muse agent over an
+   OpenAI-compatible chat completions API on the tailnet, so
+   programs and agents on your other devices can send requests
+   to it. The agent asks during installation whether you want
+   it configured.
 
 ## Quick start
 
@@ -24,8 +30,7 @@ Installation is performed by a Muse agent, not manually:
    - **Permissions settings.** In the Muse app or web UI, under
      Settings > Permissions, enable **Other TCP connections** and
      **External DNS lookups** (Direct network protocols, each is a
-     toggle), and under **Advanced** turn off **SNI mismatch
-     rejection**. The remaining protocol toggles are not needed for
+     toggle). The remaining protocol toggles are not needed for
      this setup.
    - **Tailscale login approval.** Open the login link provided by
      Muse and approve the VM in a browser. Muse will also offer
@@ -36,6 +41,10 @@ Installation is performed by a Muse agent, not manually:
      contacts its relay servers worldwide to select the fastest one.
      Each new address generates an approval prompt. The set is
      finite; once approved, the prompts stop.
+4. Once the core setup passes its checks, Muse asks whether you
+   also want the optional OpenAI-compatible API bridge
+   (INSTALL.md section 11) configured, and sets it up if you
+   say yes.
 
 After installation, the setup is self-maintaining: reboots and VM
 replacements recover automatically.

@@ -10,8 +10,7 @@ only), skip to the §9 checklist instead.
 
 **Steps only the user can do: ask for them, never work around them:**
 1. Settings > Permissions: enable the necessary Direct network
-   protocols (each is a checkbox), and under **Advanced** turn
-   **off** SNI mismatch rejection. Both are required (see §2).
+   protocols (each is a checkbox; see §2).
 2. Approve the Tailscale login URL in their browser when you present it.
    Optional and recommended: also offer the §7 ACL policy, which makes
    the VM receive-only. It requires `tag:muse` in their tailnet policy
@@ -92,7 +91,6 @@ recurring job is not to be surprised by it.
 ## 2. Settings only the user can change (Muse app / web Settings)
 
 - **Settings > Permissions > Direct network protocols**: each protocol is a toggle (Outbound SSH; Outgoing email (SMTP); Email mailbox access (IMAP, POP3); Database connections; File transfer (FTP); External DNS lookups; Other TCP connections; Other UDP traffic). Off blocks the protocol; on lets the assistant ask for approval per connection. Required for this setup: **Other TCP connections** (the Tailscale control plane and its DERP relays are direct TCP connections) and **External DNS lookups** (tailscaled resolves the control and relay hostnames itself). Not needed: the SMTP, IMAP/POP3, database, and FTP toggles. Other UDP traffic cannot succeed through this gateway at all, so it can stay off. Outbound SSH is needed only if the agent itself makes SSH connections (for example, git over SSH).
-- Advanced: **SNI mismatch rejection** must be turned **off**; this setup does not work with it on.
 - Approvals are per single IP:port ("Always allow" covers only that destination). There is **no auto-approve**. Only the user can approve; the agent cannot. Prompt cards attribute the request to "your assistant", the VM has no network identity separate from the agent runtime, so daemon traffic (e.g. tailscaled's) is presented as the agent's. Leaving *Other UDP traffic* off refuses the UDP class (which cannot succeed through this gateway anyway) and shrinks prompt volume; the TCP set (control plane + DERP map) is finite and saturates via per-IP approvals.
 
 ## 3. Network/gateway behavior
@@ -549,29 +547,49 @@ job queues, and live session files, no logs.
 
 ### API keys
 
-Clients authenticate with named keys, not one shared token.
-`~/bridge/keys.json` holds one entry per key (name, the
-SHA-256 hash of the key, creation date); the raw key is
-shown once when it is created and is never stored. The
-server reloads the file whenever it changes, so changes
-apply without a restart, and it logs the key's name with
-each job (`job ... queued key=<name>`). That log name is
-the only client attribution available: tailscaled runs in
-userspace mode here, so every client presents as 127.0.0.1
-regardless of which device connected. Manage keys with the
-packaged tool (also linked at `~/bridge/bin/bridge-key`):
+Clients authenticate with named keys. One default key is
+created automatically when the bridge first starts; more
+keys can be added at any time.
+
+**The default key.** On the bridge's first start, the
+bootstrap script generates a random key (48 hexadecimal
+characters) and writes it to `~/bridge/token`, with file
+permissions 600. That file is the only place the raw
+default key is kept. The bootstrap also creates the
+keyring, `~/bridge/keys.json`, registering the same key
+under the name `initial`; the keyring stores only the
+key's SHA-256 hash, its name, and its creation date, never
+a raw key.
+
+**Getting the default key.** Read the file on the VM:
+
+    cat ~/bridge/token
+
+The value it prints is the API key: give it to the client
+program as its API key (for example, an OpenAI client's
+`apiKey` setting). During setup the agent can read this
+file and report the value to the user; anyone with shell
+access to the VM can retrieve it the same way at any time.
+
+**Adding more keys.** Use the packaged `bridge-key` tool
+(also linked at `~/bridge/bin/bridge-key`):
 
 - `bridge-key add <name>`: create a key and print it once.
+  The raw value is stored nowhere, so copy it when it is
+  printed.
 - `bridge-key list`: show names, dates, and hash prefixes.
 - `bridge-key revoke <name>`: remove a key; that client
   receives 401s from then on, and other clients are
   unaffected.
 
-On first run the bootstrap generates the initial key into
-`~/bridge/token` and seeds the keyring with the same value
-under the name `initial`. Give each device its own named
-key, and revoke `initial` once no client uses it. If
-`keys.json` is ever deleted, the server falls back to the
-raw token in `~/bridge/token` until the keyring is rebuilt
-(`bridge-key import-legacy <name>` rebuilds it from that
-file).
+Give each device its own named key, and revoke `initial`
+once no client uses it. The server reloads `keys.json`
+whenever it changes, so changes apply without a restart,
+and it logs the key's name with each job
+(`job ... queued key=<name>`). That log name is the only
+client attribution available: tailscaled runs in userspace
+mode here, so every client presents as 127.0.0.1 regardless
+of which device connected. If `keys.json` is ever deleted,
+the server falls back to the raw token in `~/bridge/token`
+until the keyring is rebuilt (`bridge-key import-legacy
+<name>` rebuilds it from that file).

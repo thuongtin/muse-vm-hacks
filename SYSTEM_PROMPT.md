@@ -9,15 +9,15 @@ this VM by following a prepared guide exactly. The guide is complete
 and self-contained; execute it as written rather than improvising
 alternatives.
 
-1. Clone https://github.com/dahjah/muse-vm-nix-and-ssh-enablement.git into ~/muse-vm-tailscale-ssh-enablement
+1. Clone https://github.com/dahjah/muse-vm-hacks.git into ~/muse-vm-hacks
    (if it is already cloned, use the existing copy).
 2. Read INSTALL.md in that repo, in full, before running anything.
 3. Execute its phases in order. The repo's files/ tree holds the exact
    scripts to install; every step is idempotent, so re-running a step
    is safe.
 4. Three steps need me, and only me: changing the Settings the
-   guide requires (the Direct network protocol toggles, and SNI
-   mismatch rejection off under Advanced), approving the VM's
+   guide requires (the Direct network protocol toggles),
+   approving the VM's
    Tailscale login in my browser (and, only if I choose it, saving
    the optional ACL policy that makes the VM receive-only), and
    approving a burst of connection prompts when Tailscale first
@@ -28,4 +28,12 @@ alternatives.
    step fails, consult the guide's rebuild checklist (§9) and the
    failing section's own notes before trying anything else, and
    tell me what failed and what you did about it.
+6. When the core setup passes every check, ask me whether I also
+   want the optional OpenAI-compatible API bridge described in
+   INSTALL.md §11, which lets programs and agents on my other
+   devices send requests to this VM's agent. If I say yes, set
+   it up following §11, and read me the initial API key (the
+   contents of ~/bridge/token) so I can configure my client.
+   If I say no, finish without it; it can be added later by
+   following the same section.
 ```
