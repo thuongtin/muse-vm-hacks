@@ -51,16 +51,22 @@ special case: a block between `# BEGIN local-only` and
 
 With `--with-bridge`, the script also installs
 `files/scripts/bootstrap-api-bridge.sh` and
-`files/hooks/api-bridge.sh` and creates the bridge autostart
-flag.
+`files/hooks/api-bridge.sh`, copies the bridge tool sources
+(`bridge-respond`, `bridge-key`, `bridge-session` from
+`files/api-bridge/`) to `/home/hatch/bridge/src/` (the copies
+the bridge bootstrap links into `/home/hatch/bridge/bin/`,
+§11), and creates the bridge autostart flag.
 
 **Phase C: Nix:** run `sh ~/workspace/nix/setup-nix.sh`
 (repo: `files/nix/setup-nix.sh`; the script ensures the
 xattr-retry shim before its own nix calls, which do not go
 through the wrappers, and every later nix call gets it from
 nixwrap, §4), then the bare install of §4:
-`/home/hatch/bin/nix-env -iA nixpkgs.tailscale`. Done when `nix --version` prints 2.35.2
-and the install exits 0. If an install ever fails naming a
+`/home/hatch/bin/nix-env -iA nixpkgs.tailscale`. Done when `nix --version` prints a
+version and the install exits 0. Do not pin the expected version:
+the official installer delivers the current release (2.35.2 when
+this guide was written, 2.35.4 by 2026-11), and every check in
+this guide is written to accept whatever version was installed. If an install ever fails naming a
 `user.hatch_tainted.<new-suffix>` attribute, append the
 full attribute name to `ignored-acls.txt` (§4) and retry. If the shim is unavailable or
 misbehaves, §4's fallback procedure is the manual path.
@@ -132,7 +138,9 @@ file is missing. Changing the list means editing that one
 file.
 
 ### Layout
-- Nix **2.35.2**, official installer, single-user. Channel: nixpkgs-unstable.
+- Nix, official installer, single-user. The version is whatever the
+  installer currently delivers, never a pinned point release (2.35.2
+  originally, 2.35.4 by 2026-11). Channel: nixpkgs-unstable.
 - Store backing on the persistent volume: **`/home/hatch/nixdisk`** (contains `store/` + `var/`), bind-mounted over `/nix` per session (mounts don't persist).
 - Profile lives in the volume (`/nix/var/nix/profiles/default`); the symlink `/root/.nix-profile` and `/etc/nix/nix.conf` live on the ephemeral overlay.
 
@@ -294,7 +302,9 @@ rewrites its own log to the newest 2000 lines whenever it passes 5 MB.
   It cannot be uninstalled (`/opt/hatch/bin` is platform-owned, read-only)
   and was never connected, so it is simply ignored. Bare `tailscale` still
   resolves to it (PATH order); use `/home/hatch/bin/tailscale`.
-- Full upstream **tailscale + tailscaled 1.102.5** installed via Nix (§4).
+- Full upstream **tailscale + tailscaled** installed via Nix (§4).
+  The exact version follows the nixpkgs-unstable channel, so it is
+  not pinned here either (1.102.5 originally, 1.104.4 by 2026-11).
 - Daemon start (userspace mode; state in home):
   ```
   mkdir -p /run/tailscale
@@ -358,7 +368,7 @@ rewrites its own log to the newest 2000 lines whenever it passes 5 MB.
 A finished setup looks like this (example node name and address shown;
 expect the same *shape*, not the same values):
 
-- Nix 2.35.2 working; tailscale installed in the profile.
+- Nix working (`nix --version` prints a version); tailscale installed in the profile.
 - Hook `nix-boot-trigger` enabled, polling every 5 s; marker present.
 - tailscaled running with autostart enabled (§7); node online, Health
   `[]` (no DERP or ACL warnings).
@@ -493,8 +503,11 @@ Enablement, in order:
 1. Install the package: `nix-env -f files/api-bridge/api-bridge.nix -i`
    (adjust the path to the repo checkout).
 2. Run `sh files/scripts/install-files.sh --with-bridge`
-   from the repo root: it installs the module's two scripts
-   and creates its autostart flag.
+   from the repo root: it installs the module's two scripts,
+   copies the bridge tool sources to `~/bridge/src/` (without
+   them the bootstrap creates no `~/bridge/bin/` links and the
+   worker cannot answer any job), and creates its autostart
+   flag.
 3. Create a dedicated side chat for bridge traffic (title it
    "API Bridge") and note its chat id.
 4. Register the hook: id `api-bridge`, script

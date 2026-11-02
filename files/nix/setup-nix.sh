@@ -1,5 +1,8 @@
 #!/bin/sh
-# Reinstall Nix 2.35.2 on a Muse VM (e.g. after a VM replacement).
+# Reinstall Nix on a Muse VM (e.g. after a VM replacement).
+# The official installer delivers whatever the current Nix release is
+# (2.35.2 when this was written, 2.35.4 by 2026-11); never pin a point
+# version in this script, a pinned store glob below is what broke it.
 #
 # Key discovery: files on the regular filesystems here acquire an immutable
 # xattr (user.hatch_tainted[.n]) that cannot be removed from inside the VM,
@@ -60,8 +63,18 @@ mountpoint -q /nix || mount --bind "$BACKING" /nix
 
 curl -fsSL https://nixos.org/nix/install -o /tmp/nix-install.sh
 sh /tmp/nix-install.sh --no-daemon --yes || true
-NIXBIN=$(ls -d /nix/store/*-nix-2.35.2 | head -1)
+# Find the nix the installer just put in the store, whatever its
+# version: pick the newest *-nix-<version> path. The previous code
+# globbed one pinned version (2.35.2); once the installer moved on,
+# the glob matched nothing, NIXBIN was empty, and the sudo below ran
+# "/bin/nix-env", failed, and set -e killed the script before the
+# channel steps ran.
+NIXBIN=$(ls -d /nix/store/*-nix-[0-9]* 2>/dev/null | sort -V | tail -1)
 if [ ! -e /root/.nix-profile/bin/nix ]; then
+  if [ -z "$NIXBIN" ] || [ ! -x "$NIXBIN/bin/nix-env" ]; then
+    echo "setup-nix.sh: no nix found in /nix/store after the installer ran; cannot create the root profile" >&2
+    exit 1
+  fi
   sudo HOME=/root "$NIXBIN/bin/nix-env" -i "$NIXBIN"
 fi
 export PATH="/root/.nix-profile/bin:$PATH"

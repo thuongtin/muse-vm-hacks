@@ -42,10 +42,13 @@ run_checks() {
   else
     fail "shim" "present but not the pinned release build (a deliberate local build is the one exception; INSTALL.md section 4)"
   fi
-  # Nix through the wrapper.
+  # Nix through the wrapper. Accept any real version output: the
+  # official installer delivers the current release, so a pinned
+  # point version (this used to require exactly 2.35.2) fails every
+  # healthy install once upstream moves on (2.35.4 by 2026-11).
   V=$(/home/hatch/bin/nix --version 2>/dev/null)
   case "$V" in
-    *2.35.2*) pass "nix ($V)" ;;
+    "nix (Nix) "[0-9]*) pass "nix ($V)" ;;
     *) fail "nix" "no working nix via the wrappers (INSTALL.md section 4)" ;;
   esac
   # Profile contents.

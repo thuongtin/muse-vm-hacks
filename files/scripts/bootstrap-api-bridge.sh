@@ -23,11 +23,15 @@ ts() { date -Iseconds; }
 for tool in bridge-respond bridge-key; do
   if [ -e "$BRIDGE_HOME/src/$tool" ]; then
     ln -sf "$BRIDGE_HOME/src/$tool" "$BRIDGE_HOME/bin/$tool"
+  else
+    echo "$(ts) warning: $BRIDGE_HOME/src/$tool missing, no ~/bridge/bin/$tool link; run install-files.sh --with-bridge from the repo" >> "$LOG"
   fi
 done
 for tool in bridge-reply bridge-next bridge-close; do
   if [ -e "$BRIDGE_HOME/src/bridge-session" ]; then
     ln -sf "$BRIDGE_HOME/src/bridge-session" "$BRIDGE_HOME/bin/$tool"
+  else
+    echo "$(ts) warning: $BRIDGE_HOME/src/bridge-session missing, no ~/bridge/bin/$tool link; run install-files.sh --with-bridge from the repo" >> "$LOG"
   fi
 done
 

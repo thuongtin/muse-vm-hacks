@@ -9,8 +9,9 @@
 # Usage (drift check, anywhere; the installed copy at
 # ~/scripts/install-files.sh works standalone):
 #   install-files.sh [--with-bridge] --check
-#   --with-bridge  also handle the API Bridge module's scripts
-#                  and autostart flag (INSTALL.md 11).
+#   --with-bridge  also handle the API Bridge module's scripts,
+#                  its ~/bridge/src tool copies and its autostart
+#                  flag (INSTALL.md 11).
 #   --check        write nothing; verify each installed file
 #                  against the manifest recorded at install
 #                  time and exit 1 on any drift.
@@ -52,9 +53,12 @@ if [ "$CHECK" = 0 ]; then
   MTMP=$(mktemp)
 fi
 
+hash_nixwrap() {
+  sed '/^# BEGIN local-only/,/^# END local-only/c # LOCAL-ONLY' "$1" | sha256sum | cut -d' ' -f1
+}
 hash_of() {
   if [ "$1" = /home/hatch/bin/nixwrap ]; then
-    sed '/^# BEGIN local-only/,/^# END local-only/c # LOCAL-ONLY' "$1" | sha256sum | cut -d' ' -f1
+    hash_nixwrap "$1"
   else
     sha256sum "$1" | cut -d' ' -f1
   fi
@@ -83,7 +87,12 @@ place_nixwrap() {
   sed '/^# BEGIN local-only/,$d' "$src" > "$merged"
   cat "$region" >> "$merged"
   sed -n '/^# END local-only/,$p' "$src" | tail -n +2 >> "$merged"
-  if [ "$(hash_of "$merged")" = "$(hash_of "$dest")" ]; then
+  # Both sides must be hashed with the local-only block normalized
+  # out. The old code called hash_of on both, but hash_of keys the
+  # normalization on the destination path, so the temp merged file
+  # was hashed raw, the two hashes could never match, and every
+  # re-run reported nixwrap as "updated" and recopied it.
+  if [ "$(hash_nixwrap "$merged")" = "$(hash_nixwrap "$dest")" ]; then
     say "ok       $dest"
   else
     cp "$merged" "$dest"; chmod 755 "$dest"
@@ -154,9 +163,17 @@ place "$FILES/bin/xattr-retry.c" /home/hatch/workspace/nix/xattr-retry.c 644
 flag /home/hatch/.config/vm-tailscale/autostart
 
 if [ "$BRIDGE" = 1 ]; then
-  [ "$CHECK" = 0 ] && mkdir -p /home/hatch/.config/vm-api-bridge
+  [ "$CHECK" = 0 ] && mkdir -p /home/hatch/.config/vm-api-bridge /home/hatch/bridge/src
   place "$FILES/scripts/bootstrap-api-bridge.sh" /home/hatch/scripts/bootstrap-api-bridge.sh 755
   place "$FILES/hooks/api-bridge.sh" /home/hatch/hooks/scripts/api-bridge.sh 755
+  # The tool copies the bridge bootstrap links into ~/bridge/bin/.
+  # bootstrap-api-bridge.sh has always assumed install-files keeps
+  # these in sync with the repo, but no copy step existed, so a
+  # fresh --with-bridge install left ~/bridge/bin/ empty and the
+  # worker had no bridge-respond/bridge-reply to answer jobs with.
+  place "$FILES/api-bridge/bridge-respond" /home/hatch/bridge/src/bridge-respond 755
+  place "$FILES/api-bridge/bridge-key" /home/hatch/bridge/src/bridge-key 755
+  place "$FILES/api-bridge/bridge-session" /home/hatch/bridge/src/bridge-session 755
   flag /home/hatch/.config/vm-api-bridge/autostart
 fi
 
