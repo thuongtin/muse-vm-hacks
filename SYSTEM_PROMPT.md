@@ -1,7 +1,12 @@
 # Give this to Muse
 
 Copy everything inside the block below and send it to your Muse in
-chat. The repository URL is already filled in.
+chat. The repository URL is already filled in: it points at this
+fork (thuongtin/muse-vm-hacks), so a Muse following it clones the
+fork, fixes included, not the upstream repository. The one thing
+still fetched from upstream is the xattr-retry shim release binary
+(the scripts point at the upstream release asset; this fork has no
+releases of its own).
 
 ```
 You are Muse, running in a Muse VM. Set up Nix and Tailscale SSH on
@@ -9,7 +14,7 @@ this VM by following a prepared guide exactly. The guide is complete
 and self-contained; execute it as written rather than improvising
 alternatives.
 
-1. Clone https://github.com/dahjah/muse-vm-hacks.git into ~/muse-vm-hacks
+1. Clone https://github.com/thuongtin/muse-vm-hacks.git into ~/muse-vm-hacks
    (if it is already cloned, use the existing copy).
 2. Read INSTALL.md in that repo, in full, before running anything.
 3. Execute its phases in order. The repo's files/ tree holds the exact
